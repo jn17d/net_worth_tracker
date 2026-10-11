@@ -21,7 +21,8 @@ inside, so the image is small and installs nothing extra.
 ## Installation
 
 1. In Home Assistant: **Settings → Add-ons → Add-on store → ⋮ → Repositories**,
-   add this repository's URL, then open **Net Worth Tracker** from the store.
+   add `https://github.com/jn17d/net_worth_tracker`, then open
+   **Net Worth Tracker** from the store.
 2. Click **Install** — the image builds locally on your Home Assistant machine
    (it's small; first install takes a couple of minutes on a Raspberry Pi).
 3. Toggle **Show in sidebar**. **Net Worth** appears in the sidebar.

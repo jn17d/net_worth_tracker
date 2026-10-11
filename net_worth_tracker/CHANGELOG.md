@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 — 2026-11-10
+
+- Fix installation on current Home Assistant: the per-arch `*-base-python`
+  base images are no longer published, so the Dockerfile now builds from the
+  multi-arch `ghcr.io/home-assistant/base-python` directly and the deprecated
+  `build.yaml` is gone.
+- Drop `armv7` from supported architectures — Home Assistant base images are
+  published for amd64 and arm64 only.
+
 ## 1.0.0 — 2026-11-10
 
 First public release.

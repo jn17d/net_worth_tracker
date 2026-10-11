@@ -1,0 +1,5 @@
+# Keep the image build clean — only app/, run.sh and the Dockerfile matter.
+.git
+__pycache__/
+*.pyc
+.DS_Store
