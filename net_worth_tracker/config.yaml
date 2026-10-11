@@ -1,0 +1,36 @@
+name: Net Worth Tracker
+version: "1.0.0"
+slug: net_worth_tracker
+description: One dashboard for Trading 212 and Monzo — polled, charted, stored on your own machine.
+arch:
+  - aarch64
+  - amd64
+  - armv7
+startup: services
+boot: auto
+init: false
+ingress: true
+ingress_port: 8787
+panel_icon: mdi:finance
+panel_title: Net Worth
+panel_admin: true
+hassio_api: true
+options:
+  demo: false
+  t212_env: live
+  poll_minutes: 15
+  t212_accounts: []
+  monzo_client_id: ""
+  monzo_client_secret: ""
+  monzo_redirect_uri: ""
+schema:
+  demo: bool
+  t212_env: list(live|demo)
+  poll_minutes: int(1,1440)
+  t212_accounts:
+    - label: str?
+      key: str?
+      secret: str?
+  monzo_client_id: str?
+  monzo_client_secret: str?
+  monzo_redirect_uri: str?

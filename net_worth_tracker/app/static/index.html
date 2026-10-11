@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Net worth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark light;
+    --bg: #0F1B24;
+    --panel: #15252F;
+    --line: #263C49;
+    --ink: #E8F0F3;
+    --ink-2: #A3B5BF;
+    --ink-3: #6F8794;
+    --monzo: #FF6A5C;
+    --t212: #4AB0F5;
+    --pos: #5FD39A;
+    --neg: #FF8F80;
+    --focus: #8CC8FF;
+    --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #EEF2F4;
+      --panel: #FFFFFF;
+      --line: #D8E1E6;
+      --ink: #12212A;
+      --ink-2: #4A606C;
+      --ink-3: #6B808B;
+      --monzo: #E5412F;
+      --t212: #0E78C2;
+      --pos: #12805A;
+      --neg: #C2412F;
+      --focus: #0E78C2;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 15px/1.5 var(--body);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px clamp(16px, 4vw, 32px) 64px; }
+
+  /* top bar */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: clamp(20px, 5vw, 44px); }
+  .brand { display: flex; align-items: center; gap: 10px; font: 600 17px/1 var(--display); letter-spacing: -0.01em; }
+  .tag { font: 500 12px/1 var(--body); padding: 5px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--ink-2); }
+  .top-actions { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; }
+  .btn, .icon-btn {
+    all: unset; cursor: pointer; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 34px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); font: 500 13px/1 var(--body);
+  }
+  .btn { padding: 0 14px; }
+  .icon-btn { width: 34px; }
+  .btn:hover, .icon-btn:hover { border-color: var(--ink-3); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btn:focus-visible, .icon-btn:focus-visible, .seg button:focus-visible, summary:focus-visible, a:focus-visible {
+    outline: 2px solid var(--focus); outline-offset: 2px;
+  }
+  .icon-btn .slash { display: none; }
+  .icon-btn[aria-pressed="true"] .slash { display: block; }
+
+  /* notices */
+  .notices { display: grid; gap: 8px; margin: 0 0 28px; }
+  .notices:empty { display: none; }
+  .notice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 11px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-size: 14px; }
+  .notice.error { border-color: color-mix(in srgb, var(--neg) 55%, var(--line)); }
+  .notice.warn { border-color: color-mix(in srgb, #F5C451 55%, var(--line)); }
+  .notice a { color: var(--ink); font-weight: 500; text-underline-offset: 3px; }
+
+  /* readout */
+  .when { margin: 0; color: var(--ink-2); font-size: 14px; min-height: 1.5em; }
+  .total {
+    margin: 2px 0 0;
+    font: 600 clamp(48px, 9vw, 96px)/1 var(--display);
+    font-variation-settings: "opsz" 96, "wdth" 88;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+  }
+  .total .frac { font-size: .42em; font-weight: 500; letter-spacing: -0.01em; color: var(--ink-3); margin-left: .05em; }
+  .delta { margin: 10px 0 0; color: var(--ink-2); min-height: 1.5em; }
+  .delta b { font-weight: 500; }
+  .pos { color: var(--pos); }
+  .neg { color: var(--neg); }
+
+  /* controls */
+  .controls { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 28px 0 10px; }
+  .seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 12px; }
+  .seg button {
+    all: unset; cursor: pointer; padding: 6px 12px; border-radius: 9px;
+    font: 500 13px/1.2 var(--body); color: var(--ink-2);
+  }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+
+  /* chart */
+  .chart { position: relative; height: clamp(240px, 36vw, 380px); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .chart svg:focus { outline: none; }
+  .chart svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 6px; }
+  .grid line { stroke: var(--line); stroke-width: 1; }
+  .axis text { fill: var(--ink-3); font: 400 11.5px var(--body); }
+  .line { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .line.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 900ms ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .cursor line { stroke: var(--ink-3); stroke-dasharray: 3 4; }
+  .cursor circle { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+  .chart .empty { height: 100%; display: grid; place-content: center; text-align: center; gap: 4px; color: var(--ink-2); border: 1px dashed var(--line); border-radius: 16px; padding: 24px; }
+  .chart .empty p { margin: 0; max-width: 44ch; }
+  .chart .empty b { color: var(--ink); font-weight: 500; }
+  body.hide .chart .money { opacity: 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 14px; min-height: 1.5em; }
+  .legend span { display: inline-flex; align-items: baseline; gap: 8px; color: var(--ink-2); }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); align-self: center; }
+  .legend b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* panels */
+  .panels { display: grid; gap: 16px; margin-top: 44px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 22px 22px 14px; }
+  .panel header { display: flex; align-items: baseline; gap: 10px; }
+  .panel h2 { margin: 0; font: 600 20px/1.1 var(--display); letter-spacing: -0.015em; }
+  .panel .share { color: var(--ink-3); font-size: 13px; }
+  .panel .sum { margin-left: auto; font: 600 20px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .bar { height: 4px; border-radius: 4px; background: var(--line); margin: 14px 0 4px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--c); border-radius: 4px; }
+  .acct h3 { margin: 16px 0 0; font-size: 13px; font-weight: 500; color: var(--ink-3); }
+  .parts { list-style: none; margin: 6px 0 0; padding: 0; }
+  .parts li { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .parts li:first-child { border-top: 0; }
+  .parts .v { font-variant-numeric: tabular-nums; }
+  details { border-top: 1px solid var(--line); }
+  details .parts li:first-child { border-top: 0; }
+  summary { cursor: pointer; padding: 10px 0; color: var(--ink-2); font-size: 13px; border-radius: 6px; }
+  .stale { margin: 6px 0 0; font-size: 13px; color: var(--neg); }
+  .acct { padding-bottom: 8px; }
+
+  .money { transition: filter .15s; }
+  body.hide .money { filter: blur(9px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .line.draw { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; }
+    .money { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Net worth <span class="tag" id="demoTag" hidden>Demo data</span></div>
+    <div class="top-actions">
+      <span id="updated">Loading…</span>
+      <button class="icon-btn" id="hide" type="button" aria-pressed="false" aria-label="Hide amounts" title="Hide amounts">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/>
+        </svg>
+      </button>
+      <a class="btn" href="settings">Settings</a>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <div class="notices" id="notices" aria-live="polite"></div>
+
+  <section aria-label="Combined net worth">
+    <p class="when" id="when">Latest</p>
+    <p class="total money" id="total" aria-label="Net worth">–</p>
+    <p class="delta" id="delta"></p>
+
+    <div class="controls">
+      <div class="seg" id="ranges" role="group" aria-label="Time range">
+        <button type="button" data-range="1w" aria-pressed="false">1W</button>
+        <button type="button" data-range="1m" aria-pressed="false">1M</button>
+        <button type="button" data-range="3m" aria-pressed="false">3M</button>
+        <button type="button" data-range="1y" aria-pressed="false">1Y</button>
+        <button type="button" data-range="all" aria-pressed="false">All</button>
+      </div>
+      <div class="seg" id="views" role="group" aria-label="Chart view">
+        <button type="button" data-view="total" aria-pressed="false">Total</button>
+        <button type="button" data-view="split" aria-pressed="false">Split</button>
+      </div>
+    </div>
+
+    <div class="chart" id="chart"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panels" id="panels" aria-label="Accounts"></section>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const BASE = window.BASE || '';  // ingress prefix when served through Home Assistant
+  const store = {
+    get(k, d) { try { return localStorage.getItem(k) || d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+  };
+
+  const COLORS = { 'Monzo': 'var(--monzo)', 'Trading 212': 'var(--t212)' };
+  const FALLBACK = ['#B28DFF', '#F5C451', '#5FD39A'];
+  const seen = [];
+  const colorFor = name => {
+    if (COLORS[name]) return COLORS[name];
+    let i = seen.indexOf(name);
+    if (i < 0) { seen.push(name); i = seen.length - 1; }
+    return FALLBACK[i % FALLBACK.length];
+  };
+
+  const S = {
+    range: store.get('range', '3m'),
+    view: store.get('view', 'total'),
+    cur: 'GBP', summary: null, points: [], providers: [], idx: null, geo: null, drawn: false
+  };
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nf = (o = {}) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: S.cur, ...o });
+  const money = v => nf().format(v);
+  const compact = v => nf({ notation: 'compact', maximumFractionDigits: 1 }).format(v);
+
+  const dfShort = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
+  const dfLong = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const dfTime = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const dfMonth = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' });
+  const dfHour = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const d = t => new Date(t * 1000);
+
+  async function get(url, opts) {
+    const r = await fetch(BASE + url, opts);
+    if (!r.ok) throw new Error(url + ' ' + r.status);
+    return r.json();
+  }
+
+  /* ---------- readout ---------- */
+  function setTotal(v) {
+    $('#total').innerHTML = nf().formatToParts(v)
+      .map(p => (p.type === 'decimal' || p.type === 'fraction') ? `<span class="frac">${p.value}</span>` : p.value)
+      .join('');
+  }
+
+  function readout(i) {
+    const pts = S.points;
+    if (!pts.length) {
+      $('#total').textContent = '–';
+      $('#when').textContent = 'Latest';
+      $('#delta').textContent = '';
+      $('#legend').innerHTML = '';
+      return;
+    }
+    const last = pts.length - 1;
+    const idx = i == null ? last : i;
+    const p = pts[idx], first = pts[0];
+    setTotal(p.total);
+    const span = pts[last].t - first.t;
+    $('#when').textContent = idx === last && i == null ? 'Latest' : (span <= 31 * 86400 ? dfTime : dfLong).format(d(p.t));
+    if (pts.length < 2) {
+      $('#delta').textContent = '';
+    } else {
+      const diff = p.total - first.total;
+      const pct = first.total ? diff / Math.abs(first.total) * 100 : 0;
+      const sign = diff >= 0 ? '+' : '−';
+      $('#delta').innerHTML =
+        `<b class="${diff >= 0 ? 'pos' : 'neg'}"><span class="money">${sign}${money(Math.abs(diff))}</span> (${sign}${Math.abs(pct).toFixed(1)}%)</b> since ${dfShort.format(d(first.t))}`;
+    }
+    $('#legend').innerHTML = S.providers.map(n =>
+      `<span style="--c:${colorFor(n)}"><i></i>${esc(n)} <b class="money">${money(p.p[n] || 0)}</b></span>`).join('');
+  }
+
+  /* ---------- chart ---------- */
+  function niceTicks(lo, hi, n) {
+    const span = hi - lo;
+    if (!(span > 0)) return [lo];
+    const step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), r = step0 / mag;
+    const step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(v);
+    return out;
+  }
+
+  function draw() {
+    const host = $('#chart'), pts = S.points;
+    S.geo = null;
+    if (pts.length < 2) {
+      const none = !S.summary || !S.summary.sources.length;
+      host.innerHTML = none
+        ? `<div class="empty"><p><b>Nothing to chart yet.</b></p><p>Connect an account and your net worth will show up here.</p></div>`
+        : `<div class="empty"><p><b>Your graph starts here.</b></p><p>The dashboard saves a snapshot every ${S.summary.pollMinutes} minutes. Leave it running and the line fills in.</p></div>`;
+      return;
+    }
+    const W = host.clientWidth || 800, H = host.clientHeight || 340;
+    const m = { t: 14, r: 62, b: 26, l: 4 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t, span = t1 - t0;
+    const X = t => m.l + (t - t0) / span * iw;
+    const totals = pts.map(p => p.total);
+    let lo, hi;
+    if (S.view === 'split') {
+      lo = 0; hi = (Math.max(...totals) * 1.06) || 1;
+    } else {
+      lo = Math.min(...totals); hi = Math.max(...totals);
+      const pad = (hi - lo) * 0.15 || Math.abs(hi) * 0.02 || 1;
+      lo -= pad; hi += pad;
+    }
+    const Y = v => m.t + (1 - (v - lo) / (hi - lo)) * ih;
+    const f = n => n.toFixed(1);
+
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${f(X(p.t))} ${f(Y(p.total))}`).join('');
+
+    let layers = '';
+    if (S.view === 'split') {
+      const base = pts.map(() => 0);
+      S.providers.forEach(n => {
+        const top = pts.map((p, i) => base[i] + (p.p[n] || 0));
+        const fwd = pts.map((p, i) => `${i ? 'L' : 'M'}${f(X(p.t))} ${f(Y(top[i]))}`).join('');
+        const back = pts.map((p, i) => `L${f(X(p.t))} ${f(Y(base[i]))}`).reverse().join('');
+        layers += `<path d="${fwd}${back}Z" fill="${colorFor(n)}" fill-opacity=".85"/>`;
+        top.forEach((v, i) => { base[i] = v; });
+      });
+    } else {
+      layers = `<path d="${line}L${f(X(t1))} ${f(Y(lo))}L${f(X(t0))} ${f(Y(lo))}Z" fill="var(--ink)" fill-opacity=".07"/>`;
+    }
+
+    const grid = niceTicks(lo, hi, 4).map(v =>
+      `<line x1="${m.l}" x2="${W - m.r}" y1="${f(Y(v))}" y2="${f(Y(v))}"/>`).join('');
+    const yl = niceTicks(lo, hi, 4).map(v =>
+      `<text class="money" x="${W - m.r + 10}" y="${f(Y(v) + 4)}">${compact(v)}</text>`).join('');
+    const fmt = span <= 2 * 86400 ? dfHour : span <= 400 * 86400 ? dfShort : dfMonth;
+    const xl = [0, 1, 2, 3, 4].map(i => {
+      const t = t0 + span * i / 4;
+      const anchor = i === 0 ? 'start' : i === 4 ? 'end' : 'middle';
+      return `<text x="${f(X(t))}" y="${H - 6}" text-anchor="${anchor}">${fmt.format(d(t))}</text>`;
+    }).join('');
+
+    const drawClass = S.drawn ? '' : ' draw';
+    host.innerHTML =
+      `<svg viewBox="0 0 ${W} ${H}" role="img" tabindex="0" aria-label="Net worth over time. Use the left and right arrow keys to inspect values.">
+        <g class="grid">${grid}</g>
+        ${layers}
+        <path class="line${drawClass}" pathLength="1" d="${line}"/>
+        <g class="axis">${yl}${xl}</g>
+        <g class="cursor" visibility="hidden"><line y1="${m.t}" y2="${m.t + ih}"/><circle r="5"/></g>
+      </svg>`;
+    S.drawn = true;
+    S.geo = { X, Y, W, m, iw, t0, span };
+    if (S.idx != null) cursor(Math.min(S.idx, pts.length - 1));
+  }
+
+  function cursor(i) {
+    S.idx = i;
+    const g = $('#chart .cursor');
+    if (g && S.geo) {
+      if (i == null) {
+        g.setAttribute('visibility', 'hidden');
+      } else {
+        const p = S.points[i], x = S.geo.X(p.t), y = S.geo.Y(p.total);
+        const ln = g.querySelector('line'), c = g.querySelector('circle');
+        ln.setAttribute('x1', x); ln.setAttribute('x2', x);
+        c.setAttribute('cx', x); c.setAttribute('cy', y);
+        g.setAttribute('visibility', 'visible');
+      }
+    }
+    readout(i);
+  }
+
+  function nearest(t) {
+    const pts = S.points;
+    let a = 0, b = pts.length - 1;
+    while (b - a > 1) { const mid = (a + b) >> 1; if (pts[mid].t < t) a = mid; else b = mid; }
+    return Math.abs(pts[a].t - t) <= Math.abs(pts[b].t - t) ? a : b;
+  }
+
+  const chartEl = $('#chart');
+  chartEl.addEventListener('pointermove', e => {
+    if (!S.geo) return;
+    const r = chartEl.getBoundingClientRect();
+    const x = (e.clientX - r.left) * (S.geo.W / r.width);
+    const t = S.geo.t0 + (x - S.geo.m.l) / S.geo.iw * S.geo.span;
+    cursor(nearest(Math.min(Math.max(t, S.points[0].t), S.points[S.points.length - 1].t)));
+  });
+  ['pointerleave', 'pointercancel'].forEach(ev => chartEl.addEventListener(ev, () => { if (S.geo) cursor(null); }));
+  chartEl.addEventListener('focusout', () => { if (S.geo) cursor(null); });
+  chartEl.addEventListener('keydown', e => {
+    if (!S.geo) return;
+    const last = S.points.length - 1;
+    let i = S.idx == null ? last : S.idx;
+    if (e.key === 'ArrowLeft') i = Math.max(0, i - 1);
+    else if (e.key === 'ArrowRight') i = Math.min(last, i + 1);
+    else if (e.key === 'Home') i = 0;
+    else if (e.key === 'End') i = last;
+    else if (e.key === 'Escape') return cursor(null);
+    else return;
+    e.preventDefault();
+    cursor(i);
+  });
+  new ResizeObserver(() => { if (S.points.length > 1) draw(); }).observe(chartEl);
+
+  /* ---------- panels + notices ---------- */
+  function renderNotices(s) {
+    $('#notices').innerHTML = s.notices.map(n =>
+      `<div class="notice ${esc(n.level)}"><span>${esc(n.text)}</span>${n.action ? `<a href="${BASE}${esc(n.action.href)}">${esc(n.action.label)}</a>` : ''}</div>`).join('');
+  }
+
+  function renderPanels(s) {
+    const host = $('#panels');
+    if (!s.sources.length) { host.innerHTML = ''; return; }
+    const groups = new Map();
+    s.sources.forEach(x => {
+      if (!groups.has(x.provider)) groups.set(x.provider, []);
+      groups.get(x.provider).push(x);
+    });
+    host.innerHTML = [...groups].map(([name, list]) => {
+      const sum = list.reduce((a, x) => a + x.total, 0);
+      const share = s.total ? Math.max(0, sum / s.total * 100) : 0;
+      const accts = list.map(x => {
+        const rows = x.parts.map(p => `<li><span>${esc(p.name)}</span><span class="v money">${money(p.value)}</span></li>`);
+        const rest = rows.slice(6);
+        return `<div class="acct">
+          ${list.length > 1 || x.label !== name ? `<h3>${esc(x.label)}</h3>` : ''}
+          <ul class="parts">${rows.slice(0, 6).join('')}</ul>
+          ${rest.length ? `<details><summary>Show ${rest.length} more</summary><ul class="parts">${rest.join('')}</ul></details>` : ''}
+          ${x.stale ? '<p class="stale">Couldn’t refresh. Showing the last saved balance.</p>' : ''}
+        </div>`;
+      }).join('');
+      return `<article class="panel" style="--c:${colorFor(name)}">
+        <header><h2>${esc(name)}</h2><span class="share">${Math.round(share)}% of total</span><span class="sum money">${money(sum)}</span></header>
+        <div class="bar" aria-hidden="true"><i style="width:${share.toFixed(1)}%"></i></div>
+        ${accts}
+      </article>`;
+    }).join('');
+  }
+
+  function renderUpdated(s) {
+    const el = $('#updated');
+    if (!s.updated) { el.textContent = s.syncing ? 'Syncing…' : 'No data yet'; return; }
+    const mins = Math.floor((Date.now() / 1000 - s.updated) / 60);
+    el.textContent = mins < 1 ? 'Updated just now'
+      : mins < 60 ? `Updated ${mins} min ago`
+      : mins < 1440 ? `Updated ${Math.floor(mins / 60)} h ago`
+      : `Updated ${Math.floor(mins / 1440)} d ago`;
+  }
+
+  /* ---------- load + wiring ---------- */
+  function render() {
+    const s = S.summary;
+    S.cur = s.currency || 'GBP';
+    $('#demoTag').hidden = !s.demo;
+    renderNotices(s);
+    renderPanels(s);
+    renderUpdated(s);
+    readout(S.idx);
+    draw();
+    if (s.syncing && !s.sources.length) setTimeout(load, 3000);
+  }
+
+  async function load() {
+    try {
+      const [s, h] = await Promise.all([get('/api/summary'), get('/api/history?range=' + S.range)]);
+      S.summary = s; S.points = h.points; S.providers = h.providers;
+      render();
+    } catch (e) {
+      $('#updated').textContent = 'Can’t reach the server';
+    }
+  }
+
+  function syncButtons() {
+    document.querySelectorAll('#ranges button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === S.range)));
+    document.querySelectorAll('#views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === S.view)));
+  }
+
+  $('#ranges').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.range = b.dataset.range; S.idx = null; store.set('range', S.range); syncButtons(); load();
+  });
+  $('#views').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.view = b.dataset.view; store.set('view', S.view); syncButtons(); draw();
+  });
+
+  $('#hide').addEventListener('click', () => {
+    const on = !document.body.classList.contains('hide');
+    document.body.classList.toggle('hide', on);
+    $('#hide').setAttribute('aria-pressed', String(on));
+    $('#hide').setAttribute('aria-label', on ? 'Show amounts' : 'Hide amounts');
+    $('#hide').title = on ? 'Show amounts' : 'Hide amounts';
+    store.set('hide', on ? '1' : '0');
+  });
+  if (store.get('hide', '0') === '1') $('#hide').click();
+
+  $('#refresh').addEventListener('click', async () => {
+    const b = $('#refresh');
+    b.disabled = true; b.textContent = 'Refreshing…';
+    try { await get('/api/refresh', { method: 'POST' }); } catch {}
+    await load();
+    b.disabled = false; b.textContent = 'Refresh';
+  });
+
+  syncButtons();
+  load();
+  setInterval(load, 60000);
+  setInterval(() => { if (S.summary) renderUpdated(S.summary); }, 30000);
+})();
+</script>
+</body>
+</html>

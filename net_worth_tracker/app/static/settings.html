@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Net worth — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark light;
+    --bg: #0F1B24; --panel: #15252F; --line: #263C49;
+    --ink: #E8F0F3; --ink-2: #A3B5BF; --ink-3: #6F8794;
+    --pos: #5FD39A; --neg: #FF8F80; --focus: #8CC8FF;
+    --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #EEF2F4; --panel: #FFFFFF; --line: #D8E1E6;
+      --ink: #12212A; --ink-2: #4A606C; --ink-3: #6B808B;
+      --pos: #12805A; --neg: #C2412F; --focus: #0E78C2;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--body); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px clamp(16px, 4vw, 32px) 64px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: clamp(20px, 5vw, 36px); }
+  .brand { display: flex; align-items: center; gap: 10px; font: 600 17px/1 var(--display); letter-spacing: -0.01em; }
+  .tag { font: 500 12px/1 var(--body); padding: 5px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--ink-2); }
+  .btn {
+    all: unset; cursor: pointer; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 34px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); font: 500 13px/1 var(--body);
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 2px solid var(--focus); outline-offset: 2px;
+  }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
+  .panel > header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  h2 { margin: 0; font: 600 16px/1.2 var(--display); }
+  .sub { color: var(--ink-2); font-size: 13px; margin: 2px 0 14px; }
+  .field { margin: 12px 0 0; }
+  .field label { display: block; font: 500 12.5px/1 var(--body); color: var(--ink-2); margin-bottom: 6px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  input[type="text"], input[type="password"], input[type="number"], select {
+    all: unset; box-sizing: border-box; flex: 1; min-width: 0;
+    height: 38px; padding: 0 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    font: 400 14px/1 var(--body);
+  }
+  input:focus, select:focus { border-color: var(--focus); }
+  input::placeholder { color: var(--ink-3); }
+  input:disabled, select:disabled { opacity: .55; }
+  .mini {
+    all: unset; cursor: pointer; flex: none; padding: 0 10px; height: 34px;
+    border-radius: 9px; border: 1px solid var(--line); color: var(--ink-2); font: 500 12px/1 var(--body);
+  }
+  .mini:hover { border-color: var(--ink-3); color: var(--ink); }
+  .mini.on { color: var(--neg); border-color: color-mix(in srgb, var(--neg) 55%, var(--line)); }
+  .mini:focus-visible { outline: 2px solid var(--focus); }
+  .hint { margin: 5px 0 0; font-size: 12px; color: var(--ink-3); }
+  .acct { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 6px; }
+  .acct h3 { margin: 8px 0 0; font: 600 13px/1 var(--body); color: var(--ink-2); }
+  .notices { display: grid; gap: 8px; margin: 0 0 24px; }
+  .notices:empty { display: none; }
+  .notice { padding: 11px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-size: 14px; }
+  .notice.warn { border-color: color-mix(in srgb, #F5C451 55%, var(--line)); }
+  .statusbar {
+    position: sticky; bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 20px; padding: 12px 14px; border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  }
+  #status { font-size: 13.5px; color: var(--ink-2); min-height: 1.4em; }
+  #status.err { color: var(--neg); }
+  #status.ok { color: var(--pos); }
+  details.help { margin: 10px 0 0; color: var(--ink-2); font-size: 13px; }
+  details.help summary { cursor: pointer; }
+  details.help li { margin: 4px 0; }
+  a { color: var(--ink); font-weight: 500; text-underline-offset: 3px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Settings <span class="tag" id="demoTag" hidden>Demo data</span></div>
+    <a class="btn" href="./">← Dashboard</a>
+  </header>
+
+  <div class="notices" id="notices"></div>
+  <form id="form" autocomplete="off" onsubmit="return false"></form>
+
+  <div class="statusbar">
+    <span id="status" role="status">Loading…</span>
+    <button class="btn" id="save" type="button" disabled>Save changes</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const BASE = window.BASE || '';  // ingress prefix when served through Home Assistant
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let S = null; // last state from the server
+  const SECRET_KEYS = new Set([
+    'MONZO_CLIENT_SECRET', 'MONZO_ACCESS_TOKEN', 'BASIC_AUTH_PASS',
+    ...Array.from({length: 4}, (_, i) => `T212_${i + 1}_SECRET`),
+  ]);
+
+  function status(msg, cls) {
+    const el = $('#status');
+    el.textContent = msg || '';
+    el.className = cls || '';
+  }
+
+  function secretField(key, label, meta, hint) {
+    const saved = meta.set ? `saved ${esc(meta.masked)}` : 'not set';
+    if (meta.locked) {
+      return `<div class="field">
+        <label>${esc(label)}</label>
+        <input type="password" value="••••••••" disabled>
+        <p class="hint">Set by an environment variable where the server starts — edit it there.</p>
+      </div>`;
+    }
+    return `<div class="field">
+      <label>${esc(label)}</label>
+      <div class="row">
+        <input type="password" data-key="${key}" placeholder="${saved} — leave blank to keep"
+               autocomplete="new-password">
+        <button type="button" class="mini" data-clear="${key}">Remove</button>
+      </div>
+      ${hint ? `<p class="hint">${esc(hint)}</p>` : ''}
+    </div>`;
+  }
+
+  function textField(key, label, meta, value, placeholder, hint) {
+    const dis = meta && meta.locked ? ' disabled' : '';
+    const note = meta && meta.locked
+      ? '<p class="hint">Set by an environment variable where the server starts — edit it there.</p>'
+      : (hint ? `<p class="hint">${esc(hint)}</p>` : '');
+    return `<div class="field">
+      <label>${esc(label)}</label>
+      <input type="text" data-key="${key}" value="${esc(value ?? '')}" placeholder="${esc(placeholder || '')}"${dis}>
+      ${note}
+    </div>`;
+  }
+  function render() {
+    const f = S.fields, p = S.plain;
+    $('#demoTag').hidden = !S.demo;
+    $('#notices').innerHTML =
+      (S.demo ? '<div class="notice warn">You’re viewing <b>demo data</b>. Saved keys are used when the server runs without <code>DEMO=1</code>.</div>' : '') +
+      (!S.demo && !S.authEnabled ? '<div class="notice">No password is required to open this page. Add one under <b>Sign-in</b> if anything other than this machine can reach the server.</div>' : '');
+
+    const accts = S.accounts.map(a => {
+      const named = (a.key.set || a.secret.set) && a.label ? ` · ${esc(a.label)}` : '';
+      return `<div class="acct">
+        <h3>Account ${a.n}${named}</h3>
+        ${textField(`T212_${a.n}_KEY`, 'API key', a.key, '', 'from Trading 212 → Settings → API')}
+        ${secretField(`T212_${a.n}_SECRET`, 'API secret', a.secret)}
+        ${textField(`T212_${a.n}_LABEL`, 'Label (optional)', null, a.label, 'e.g. Stocks ISA')}
+      </div>`;
+    }).join('');
+
+    const oauthReady = f.MONZO_CLIENT_ID.set && f.MONZO_CLIENT_SECRET.set;
+    $('#form').innerHTML = `
+      <section class="panel">
+        <header><h2>Trading 212</h2><span class="tag">${esc(p.T212_ENV)}</span></header>
+        <p class="sub">Create a key in Trading 212 → Settings → API. One block per account; empty blocks are ignored.</p>
+        ${accts}
+        <div class="field">
+          <label>Environment</label>
+          <select data-key="T212_ENV">
+            <option value="live"${p.T212_ENV === 'live' ? ' selected' : ''}>live</option>
+            <option value="demo"${p.T212_ENV === 'demo' ? ' selected' : ''}>demo</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>Monzo</h2><span class="tag">${oauthReady ? (S.monzo.connected ? 'connected' : 'not signed in') : 'not set up'}</span></header>
+        <p class="sub">OAuth (recommended): add a client ID + secret from developer.monzo.com, save, then use “Sign in to Monzo”. A pasted playground token also works but expires after a few hours.</p>
+        <p class="sub">Your Monzo client's registered redirect URL must be exactly:<br><code>${esc(S.redirect)}</code></p>
+        ${textField('MONZO_CLIENT_ID', 'Client ID', f.MONZO_CLIENT_ID, p.MONZO_CLIENT_ID, 'oauth client id')}
+        ${secretField('MONZO_CLIENT_SECRET', 'Client secret', f.MONZO_CLIENT_SECRET)}
+        ${secretField('MONZO_ACCESS_TOKEN', 'Access token (token mode)', f.MONZO_ACCESS_TOKEN)}
+        ${textField('MONZO_ACCOUNT_IDS', 'Account IDs (optional)', f.MONZO_ACCOUNT_IDS, p.MONZO_ACCOUNT_IDS, 'comma-separated — blank means all accounts')}
+        ${textField('MONZO_REDIRECT_URI', 'Redirect URI (optional)', f.MONZO_REDIRECT_URI, p.MONZO_REDIRECT_URI, S.redirect, 'Only change this if you registered a different redirect URL on your Monzo client — it must match character for character.')}
+        ${oauthReady && !S.monzo.connected ? `<p class="hint"><a href="${BASE}monzo/login">Sign in to Monzo →</a></p>` : ''}
+      </section>
+
+      <section class="panel">
+        <header><h2>Sign-in</h2><span class="tag">${S.authEnabled ? 'on' : 'off'}</span></header>
+        <p class="sub">Basic auth protects the dashboard and this page. Required if anything other than this machine can reach the server.</p>
+        ${textField('BASIC_AUTH_USER', 'Username', f.BASIC_AUTH_USER, p.BASIC_AUTH_USER, 'e.g. admin')}
+        ${secretField('BASIC_AUTH_PASS', 'Password', f.BASIC_AUTH_PASS, 'Takes effect immediately — the browser will ask for it on the next page load.')}
+      </section>
+
+      <section class="panel">
+        <header><h2>General</h2></header>
+        <div class="field">
+          <label>Refresh every (minutes)</label>
+          <input type="number" data-key="POLL_MINUTES" value="${esc(p.POLL_MINUTES)}" min="1" max="1440">
+        </div>
+        <details class="help"><summary>Where is this stored, and who can see it?</summary>
+          <ul>
+            <li>Saved settings live in a <code>credentials.json</code> file in the data directory, written with owner-only permissions (600) — never inside the database.</li>
+            <li>The browser is only ever sent masked values (<code>••••last4</code>). Full secrets never round-trip.</li>
+            <li>Precedence: real environment variables (locked above) → this page → <code>.env</code>.</li>
+            <li>Without sign-in configured, Settings is only reachable from this machine.</li>
+          </ul>
+        </details>
+      </section>`;
+
+    document.querySelectorAll('button[data-clear]').forEach(b => {
+      b.addEventListener('click', () => {
+        const on = b.classList.toggle('on');
+        b.textContent = on ? 'Will remove' : 'Remove';
+      });
+    });
+    $('#save').disabled = false;
+    status('');
+  }
+  function collect() {
+    const values = {};
+    document.querySelectorAll('#form [data-key]').forEach(el => {
+      const key = el.dataset.key;
+      if (el.disabled) return;
+      if (SECRET_KEYS.has(key)) {
+        const clearBtn = document.querySelector(`button[data-clear="${key}"]`);
+        if (clearBtn && clearBtn.classList.contains('on')) values[key] = null;
+        else if (el.value.trim()) values[key] = el.value;
+      } else {
+        values[key] = el.value.trim();
+      }
+    });
+    return values;
+  }
+
+  async function api(url, opts) {
+    const r = await fetch(BASE + url, opts);
+    const body = await r.json().catch(() => null);
+    if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), {body});
+    return body;
+  }
+
+  $('#save').addEventListener('click', async () => {
+    const b = $('#save');
+    b.disabled = true; status('Saving…');
+    try {
+      S = await api('/api/credentials', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-Settings-Token': S.csrf},
+        body: JSON.stringify({values: collect()}),
+      });
+      render();
+      status('Saved — changes are live, no restart needed.', 'ok');
+    } catch (e) {
+      status(e.body && e.body.error ? e.body.error : 'Couldn’t save. Is the server running?', 'err');
+      b.disabled = false;
+    }
+  });
+
+  (async () => {
+    try {
+      S = await api('/api/credentials');
+      render();
+    } catch (e) {
+      status(e.body && e.body.error ? e.body.error : 'Couldn’t load settings.', 'err');
+    }
+  })();
+})();
+</script>
+</body>
+</html>
