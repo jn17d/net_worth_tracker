@@ -156,6 +156,12 @@ def monzo_oauth() -> bool:
 # public ingress URL, e.g. https://homeassistant.local:8123/api/hassio_ingress/xyz
 SUPERVISOR_INFO: dict = {}
 
+# Learned live from incoming requests: when someone opens the add-on through
+# the Home Assistant ingress panel, the request path contains the ingress
+# prefix and the forwarded headers reveal the public HA address. This is the
+# reliable fallback when the Supervisor token isn't available.
+INGRESS_SEEN: dict = {"origin": "", "base": ""}
+
 
 def monzo_redirect() -> str:
     """Where Monzo sends the browser back after sign-in.
@@ -169,6 +175,8 @@ def monzo_redirect() -> str:
         return uri
     if SUPERVISOR_INFO.get("ingress_url"):
         return SUPERVISOR_INFO["ingress_url"] + "/monzo/callback"
+    if INGRESS_SEEN["origin"] and INGRESS_SEEN["base"]:
+        return INGRESS_SEEN["origin"] + INGRESS_SEEN["base"] + "/monzo/callback"
     return f"http://localhost:{PORT}/monzo/callback"
 
 
@@ -772,6 +780,15 @@ class Handler(BaseHTTPRequestHandler):
         if m and len(url.path) > m.end():
             self.base = m.group(0)
             url = url._replace(path=url.path[m.end():] or "/")
+            # Remember where the public world reaches us, so the Monzo
+            # redirect URI can be derived without any Supervisor API access.
+            INGRESS_SEEN["base"] = self.base
+            proto = (self.headers.get("X-Forwarded-Proto") or "https").split(",")[0].strip()
+            host = (self.headers.get("X-Forwarded-Host")
+                    or self.headers.get("X-Ingress-Host")
+                    or self.headers.get("Host") or "").split(",")[0].strip()
+            if host:
+                INGRESS_SEEN["origin"] = f"{proto}://{host}"
         else:
             self.base = ""
         return url

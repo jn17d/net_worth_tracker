@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6 — 2026-10-12
+
+- Derive the Monzo redirect URI from the incoming ingress request (path prefix
+  + `X-Forwarded-Host`/`X-Forwarded-Proto`) when the Supervisor token isn't
+  available, instead of falling straight back to `localhost`. Opening the
+  panel once is now enough for the Settings page to show the correct URL.
+
 ## 1.0.5 — 2026-10-12
 
 - Log clearly when the Supervisor token/ingress URL can't be detected (with
