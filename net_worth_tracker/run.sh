@@ -4,55 +4,68 @@
 # Maps the add-on's Options (/data/options.json) to the environment variables
 # the server understands. Only options the user actually filled in are set, so
 # anything left blank stays editable on the in-app Settings page.
+#
+# Options are parsed straight from /data/options.json with python3 (which the
+# container ships with) rather than via bashio's Supervisor API calls. This
+# avoids the "Unable to access the API, forbidden" failure mode entirely and
+# keeps the add-on working even if API access is denied.
 set -e
 
 export DATA_DIR="${DATA_DIR:-/data}"
 export HOST="${HOST:-0.0.0.0}"
 export PORT="${PORT:-8787}"
 
-if [ -f "${BASHIO_LIB:-/usr/lib/bashio/bashio.sh}" ]; then
-    # shellcheck disable=SC1090
-    . "${BASHIO_LIB:-/usr/lib/bashio/bashio.sh}"
+export OPTIONS_FILE="${OPTIONS_FILE:-/data/options.json}"
 
-    if bashio::config.true 'demo'; then
-        export DEMO=1
-    fi
+# Export env vars from options.json. A python one-liner prints shell-safe
+# `export KEY=value` lines for every option that has a non-empty value, and we
+# eval them. List options (t212_accounts) become T212_N_KEY/T212_N_SECRET/etc.
+parsed="$(python3 - "$OPTIONS_FILE" <<'PYEOF'
+import json, shlex, sys
 
-    if bashio::config.has_value 't212_env'; then
-        export T212_ENV="$(bashio::config 't212_env')"
-    fi
-    if bashio::config.has_value 'poll_minutes'; then
-        export POLL_MINUTES="$(bashio::config 'poll_minutes')"
-    fi
-    if bashio::config.has_value 'monzo_client_id'; then
-        export MONZO_CLIENT_ID="$(bashio::config 'monzo_client_id')"
-    fi
-    if bashio::config.has_value 'monzo_client_secret'; then
-        export MONZO_CLIENT_SECRET="$(bashio::config 'monzo_client_secret')"
-    fi
-    if bashio::config.has_value 'monzo_redirect_uri'; then
-        export MONZO_REDIRECT_URI="$(bashio::config 'monzo_redirect_uri')"
-    fi
+try:
+    with open(sys.argv[1], encoding="utf-8") as f:
+        opts = json.load(f)
+except Exception:
+    sys.exit(0)
 
-    # Trading 212 accounts: [{label, key, secret}, …] → T212_1_KEY, T212_1_SECRET, …
-    if bashio::config.exists 't212_accounts'; then
-        count="$(bashio::config 't212_accounts | length')"
-        n=0
-        if [ "${count:-0}" -gt 0 ] 2>/dev/null; then
-            for i in $(seq 0 $((count - 1))); do
-                key="$(bashio::config "t212_accounts[$i].key // empty")"
-                secret="$(bashio::config "t212_accounts[$i].secret // empty")"
-                if [ -n "${key}" ] && [ -n "${secret}" ]; then
-                    n=$((n + 1))
-                    export "T212_${n}_KEY=${key}" "T212_${n}_SECRET=${secret}"
-                    label="$(bashio::config "t212_accounts[$i].label // empty")"
-                    if [ -n "${label}" ]; then
-                        export "T212_${n}_LABEL=${label}"
-                    fi
-                fi
-            done
-        fi
-    fi
+SCALARS = ("demo", "t212_env", "poll_minutes",
+           "monzo_client_id", "monzo_client_secret", "monzo_redirect_uri")
+
+def emit(key, value):
+    print(f"export {key}={shlex.quote(str(value))}")
+
+for name in SCALARS:
+    value = opts.get(name)
+    if value in (None, "", []):
+        continue
+    if name == "demo":
+        if value:
+            emit("DEMO", 1)
+        continue
+    emit(name.upper(), value)
+
+accounts = opts.get("t212_accounts") or []
+n = 0
+for acct in accounts:
+    if not isinstance(acct, dict):
+        continue
+    key = (acct.get("key") or "").strip()
+    secret = (acct.get("secret") or "").strip()
+    if not key or not secret:
+        continue
+    n += 1
+    emit(f"T212_{n}_KEY", key)
+    emit(f"T212_{n}_SECRET", secret)
+    label = (acct.get("label") or "").strip()
+    if label:
+        emit(f"T212_{n}_LABEL", label)
+PYEOF
+)"
+
+if [ -n "${parsed}" ]; then
+    # shellcheck disable=SC2163
+    eval "${parsed}"
 fi
 
 cd "${APP_DIR:-/app}"

@@ -1,5 +1,5 @@
 name: Net Worth Tracker
-version: "1.0.2"
+version: "1.0.3"
 slug: net_worth_tracker
 description: One dashboard for Trading 212 and Monzo — polled, charted, stored on your own machine.
 url: https://github.com/jn17d/net_worth_tracker
@@ -15,6 +15,7 @@ panel_icon: mdi:finance
 panel_title: Net Worth
 panel_admin: true
 hassio_api: true
+hassio_role: manager
 options:
   demo: false
   t212_env: live

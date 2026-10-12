@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3 — 2026-10-12
+
+- Fix add-on failing to launch with `Unable to access the API, forbidden /
+  Failed to get addon config from Supervisor API`: `run.sh` no longer depends
+  on bashio or the Supervisor API at all — options are read directly from
+  `/data/options.json` with python3, so a denied API can never stop startup.
+- Add `hassio_role: manager` so any remaining Supervisor calls (ingress URL
+  detection for the Monzo redirect) are properly authorised.
+
 ## 1.0.2 — 2026-10-12
 
 - Fix add-on failing to start: the pinned base image tag
