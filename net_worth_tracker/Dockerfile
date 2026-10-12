@@ -9,7 +9,7 @@ FROM ${BUILD_FROM}
 
 # The app is pure Python 3 standard library — nothing to install.
 
-LABEL io.hass.version="2.0.0" \
+LABEL io.hass.version="2.1.0" \
       io.hass.type="addon" \
       io.hass.arch="aarch64|amd64"
 

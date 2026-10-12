@@ -32,8 +32,9 @@ inside, so the image is small and installs nothing extra.
 ## Connecting Trading 212
 
 1. In Trading 212: **Settings → API → Create key** (one key per account).
-2. In Home Assistant: add-on **Configuration** → *Trading 212 accounts* — one
-   entry per account with its key + secret (or use the add-on's Settings page).
+2. In the add-on's **Settings page** (open the Net Worth panel → Settings):
+   enter the API key + secret, optionally a label. Add more blocks for more
+   accounts.
 3. Set *Trading 212 environment* to `demo` if your key was made for a practice
    account.
 
@@ -58,18 +59,18 @@ Tokens are stored locally and refreshed automatically; you only do this once.
 
 ## Configuration
 
-| Option | Meaning |
-|---|---|
-| `demo` | Show fake data instead of real accounts |
-| `t212_env` | `live` or `demo` (practice accounts) |
-| `poll_minutes` | How often to poll (1–1440, default 15) |
-| `t212_accounts` | List of `{label, key, secret}` — one per Trading 212 account |
-| `monzo_client_id` / `monzo_client_secret` | OAuth client from developers.monzo.com (register redirect URL `https://localhost/net-worth-tracker`) |
+Everything is configured on the app's own **Settings page** (open the Net Worth
+panel → Settings) — there are no add-on Options to fill in. Settings live in a
+`credentials.json` under the add-on's `/data` directory: they survive restarts
+and are included in Home Assistant backups.
 
-Everything can also be set on the add-on's own **Settings** page. Precedence:
-**add-on Options → Settings page → defaults**. Options-set keys show up as
-*locked* in Settings. Settings-page changes apply instantly; changing an
-Option restarts the add-on (Home Assistant behaviour).
+| Setting (in the app) | Meaning |
+|---|---|
+| Trading 212 key + secret + label | One block per account; create keys in Trading 212 → Settings → API |
+| Trading 212 environment | `live` or `demo` (practice accounts) |
+| Monzo client ID + secret | OAuth client from developers.monzo.com (redirect URL `https://localhost/net-worth-tracker`) |
+| Refresh interval | How often to poll, 1–1440 minutes (default 15) |
+| Sign-in (optional) | Username + password protecting the dashboard |
 
 ## Security
 

@@ -224,7 +224,7 @@
           <ul>
             <li>Saved settings live in a <code>credentials.json</code> file in the data directory, written with owner-only permissions (600) — never inside the database.</li>
             <li>The browser is only ever sent masked values (<code>••••last4</code>). Full secrets never round-trip.</li>
-            <li>Precedence: real environment variables (locked above) → this page → <code>.env</code>.</li>
+            <li>Saved settings live in a <code>credentials.json</code> file in the data directory, written with owner-only permissions (600) — never inside the database. They survive restarts and are included in Home Assistant backups.</li>
             <li>Without sign-in configured, Settings is only reachable from this machine.</li>
           </ul>
         </details>

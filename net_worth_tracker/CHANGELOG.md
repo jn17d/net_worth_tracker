@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0 — 2026-10-12
+
+- All configuration now lives exclusively on the app's own Settings page.
+  The add-on Options (and their schema, translations and options.json
+  mapping in run.sh) are removed — one source of truth, no precedence rules,
+  no "locked" fields.
+
 ## 2.0.0 — 2026-10-12
 
 Overhauled Monzo connection — the "paste-the-code" flow:
