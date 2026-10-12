@@ -274,7 +274,10 @@
       S = await api('/api/credentials');
       render();
     } catch (e) {
-      status(e.body && e.body.error ? e.body.error : 'Couldn’t load settings.', 'err');
+      const why = e.body && e.body.error ? e.body.error
+        : (e.message && e.message.startsWith('HTTP ') ? 'Couldn’t load settings (' + e.message + '). Try reloading the page — if it persists, check the add-on is running and look at its Log.' 
+        : 'Couldn’t load settings — the server didn’t respond. The add-on may have just restarted; wait a few seconds and reload.');
+      status(why, 'err');
     }
   })();
 })();
