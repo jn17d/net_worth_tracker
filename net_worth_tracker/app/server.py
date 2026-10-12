@@ -765,7 +765,11 @@ class Handler(BaseHTTPRequestHandler):
         m = self.INGRESS.match(url.path)
         if m and len(url.path) > m.end():
             self.base = m.group(0)
-            url = url._replace(path=url.path[m.end():] or "/")
+            # The browser builds URLs as BASE + "/api/…" which can produce a
+            # double slash after the ingress prefix ("/token//api/…"). Collapse
+            # it so routing sees a clean path.
+            rest = url.path[m.end():].lstrip("/")
+            url = url._replace(path="/" + rest if rest else "/")
         else:
             self.base = ""
         return url

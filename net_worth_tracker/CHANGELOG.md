@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1 — 2026-10-12
+
+- **Fix "Couldn't load settings (HTTP 404)" and the empty graph when running
+  under Home Assistant ingress**: the browser builds API URLs as
+  `<ingress-prefix>//api/…` (double slash), which matched no route on the
+  server. The ingress path is now normalised, so all API calls work through
+  the panel. This bug affected every release served through ingress.
+
 ## 2.1.0 — 2026-10-12
 
 - All configuration now lives exclusively on the app's own Settings page.

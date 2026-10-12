@@ -1,5 +1,5 @@
 name: Net Worth Tracker
-version: "2.1.0"
+version: "2.1.1"
 slug: net_worth_tracker
 description: One dashboard for Trading 212 and Monzo — polled, charted, stored on your own machine.
 url: https://github.com/jn17d/net_worth_tracker
