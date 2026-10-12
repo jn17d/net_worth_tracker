@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.4 — 2026-10-12
+
+- **Really fix the Settings error through the Home Assistant panel.** 2.1.3
+  detected ingress by `X-Hass-User-Id` / `X-Hass-Is-Admin`, but Home Assistant
+  doesn't send those to add-ons (it sends `X-Ingress-Path` and
+  `X-Remote-User-*`), so Settings was still refused as "remote". Ingress is now
+  recognised by the documented Supervisor gateway address (172.30.32.0/23) and
+  the documented headers. If Settings is ever refused again, the add-on Log
+  shows the client address and header names that were seen.
+- **Fix saving wiping Trading 212 API keys.** The key field was a plain text box
+  that always submitted empty, so every Save cleared the saved key and then
+  failed with "the key and secret go together". It now behaves like the other
+  secret fields (blank = keep, Remove = clear).
+
 ## 2.1.3 — 2026-10-12
 
 - **Fix "Settings are only reachable from this machine" (HTTP 403) through the

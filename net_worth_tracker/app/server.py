@@ -19,6 +19,7 @@ which this server recognises and strips, so it also works standalone.
 from __future__ import annotations
 
 import base64
+import ipaddress
 import json
 import math
 import os
@@ -797,15 +798,31 @@ class Handler(BaseHTTPRequestHandler):
         html = (ROOT / "static" / name).read_bytes()
         return self._send(200, html, "text/html; charset=utf-8", {"Content-Security-Policy": CSP})
 
+    # Home Assistant's docs: ingress traffic only ever comes from the Supervisor
+    # gateway (172.30.32.2) on the internal hassio network (172.30.32.0/23), and
+    # the add-on publishes no port, so nothing else on the LAN can reach us.
+    HASSIO_NET = ipaddress.ip_network("172.30.32.0/23")
+    # Headers Home Assistant adds to ingress requests (X-Ingress-Path and
+    # X-Remote-User-* are the documented ones).
+    INGRESS_HEADERS = ("X-Ingress-Path", "X-Remote-User-Id", "X-Hass-Source",
+                       "X-Hass-User-Id", "X-Hass-Is-Admin")
+
     def _via_ingress(self) -> bool:
         """True when the request came through Home Assistant ingress.
 
         Recent HA builds strip the ingress path prefix before proxying, so the
-        URL can't be trusted — but the proxy always identifies the signed-in HA
-        user with these headers.
+        URL can't be trusted. Instead we look at where the request came from
+        (the Supervisor ingress gateway) and at the headers ingress adds.
         """
-        return bool(self.base or self.headers.get("X-Hass-User-Id")
-                    or self.headers.get("X-Hass-Is-Admin"))
+        if self.base:
+            return True
+        try:
+            ip = ipaddress.ip_address(self.client_address[0].split("%")[0].replace("::ffff:", ""))
+            if ip in self.HASSIO_NET:
+                return True
+        except ValueError:
+            pass
+        return any(self.headers.get(h) for h in self.INGRESS_HEADERS)
 
     def _authed(self) -> bool:
         if self._via_ingress():
@@ -845,6 +862,8 @@ class Handler(BaseHTTPRequestHandler):
         ingress, which already sits behind the HA user's own sign-in."""
         if (not auth_user() and not self._via_ingress()
                 and self.client_address[0] not in ("127.0.0.1", "::1")):
+            print(f"Settings refused: client {self.client_address[0]}, "
+                  f"headers seen: {sorted(self.headers.keys())}", flush=True)
             self._send(403, {"error": "Settings are only reachable from this machine. "
                                       "Open the Home Assistant panel, or set BASIC_AUTH_USER in "
                                       "Settings → Sign-in to use them remotely."})

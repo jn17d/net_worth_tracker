@@ -113,6 +113,7 @@
   let S = null; // last state from the server
   const SECRET_KEYS = new Set([
     'MONZO_CLIENT_SECRET', 'MONZO_ACCESS_TOKEN', 'BASIC_AUTH_PASS',
+    ...Array.from({length: 4}, (_, i) => `T212_${i + 1}_KEY`),
     ...Array.from({length: 4}, (_, i) => `T212_${i + 1}_SECRET`),
   ]);
 
@@ -164,7 +165,7 @@
       const named = (a.key.set || a.secret.set) && a.label ? ` · ${esc(a.label)}` : '';
       return `<div class="acct">
         <h3>Account ${a.n}${named}</h3>
-        ${textField(`T212_${a.n}_KEY`, 'API key', a.key, '', 'from Trading 212 → Settings → API')}
+        ${secretField(`T212_${a.n}_KEY`, 'API key', a.key, 'from Trading 212 → Settings → API')}
         ${secretField(`T212_${a.n}_SECRET`, 'API secret', a.secret)}
         ${textField(`T212_${a.n}_LABEL`, 'Label (optional)', null, a.label, 'e.g. Stocks ISA')}
       </div>`;
@@ -222,7 +223,6 @@
         </div>
         <details class="help"><summary>Where is this stored, and who can see it?</summary>
           <ul>
-            <li>Saved settings live in a <code>credentials.json</code> file in the data directory, written with owner-only permissions (600) — never inside the database.</li>
             <li>The browser is only ever sent masked values (<code>••••last4</code>). Full secrets never round-trip.</li>
             <li>Saved settings live in a <code>credentials.json</code> file in the data directory, written with owner-only permissions (600) — never inside the database. They survive restarts and are included in Home Assistant backups.</li>
             <li>Without sign-in configured, Settings is only reachable from this machine.</li>
