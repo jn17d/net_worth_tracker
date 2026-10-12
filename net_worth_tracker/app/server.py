@@ -918,16 +918,28 @@ def fetch_supervisor_info() -> None:
     add-on's public ingress URL so the Monzo redirect URI can default to it."""
     token = os.environ.get("SUPERVISOR_TOKEN", "")
     if not token:
+        print("Supervisor token missing — can't auto-detect the Monzo redirect "
+              "URI. It will fall back to localhost; set MONZO_REDIRECT_URI in "
+              "the add-on options to override. (A full rebuild of the add-on "
+              "after a hassio_role change usually restores the token.)")
         return
-    try:
-        d = http_json("http://supervisor/addons/self/info",
-                      {"Authorization": f"Bearer {token}"}, timeout=10)
-        info = d.get("data") if isinstance(d, dict) and isinstance(d.get("data"), dict) else d
-        url = str((info or {}).get("ingress_url") or "").strip()
-        if url.startswith(("http://", "https://")):
-            SUPERVISOR_INFO["ingress_url"] = url.rstrip("/")
-    except Exception as e:
-        print("Couldn't read the ingress URL from the Supervisor:", e)
+    last_err = None
+    for attempt in range(3):
+        try:
+            d = http_json("http://supervisor/addons/self/info",
+                          {"Authorization": f"Bearer {token}"}, timeout=10)
+            info = d.get("data") if isinstance(d, dict) and isinstance(d.get("data"), dict) else d
+            url = str((info or {}).get("ingress_url") or "").strip()
+            if url.startswith(("http://", "https://")):
+                SUPERVISOR_INFO["ingress_url"] = url.rstrip("/")
+                return
+            last_err = "no ingress_url in the response"
+        except Exception as e:
+            last_err = e
+        time.sleep(2)
+    print("Couldn't read the ingress URL from the Supervisor:", last_err,
+          "— the Monzo redirect URI will fall back to localhost; set "
+          "MONZO_REDIRECT_URI in the add-on options to override.")
 
 
 def main():

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5 — 2026-10-12
+
+- Log clearly when the Supervisor token/ingress URL can't be detected (with
+  retries) instead of failing silently, so the Monzo redirect fallback to
+  localhost is visible in the add-on log.
+- Better Settings-page error messages showing HTTP status and guidance (1.0.4).
+
 ## 1.0.3 — 2026-10-12
 
 - Fix add-on failing to launch with `Unable to access the API, forbidden /
