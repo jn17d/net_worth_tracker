@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2 — 2026-10-12
+
+- Fix add-on failing to start: the pinned base image tag
+  `ghcr.io/home-assistant/base-python:3.12-alpine3.24` does not exist, so the
+  Docker build failed. Now pinned to the published `3.12-alpine3.23` tag
+  (multi-arch amd64/aarch64).
+- Add the recommended `io.hass.*` image labels to the Dockerfile.
+
 ## 1.0.1 — 2026-11-10
 
 - Fix installation on current Home Assistant: the per-arch `*-base-python`
