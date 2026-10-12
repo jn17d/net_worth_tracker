@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.2 — 2026-10-12
+
+- **Fix 404s under Home Assistant ingress for good.** Verified live with a
+  browser against a real HA instance: recent HA builds strip the ingress path
+  prefix before proxying to the add-on, so the server couldn't detect the
+  ingress context and pages built absolute URLs (`/api/…`) that hit Home
+  Assistant's own REST API instead of the app. The frontend now derives its
+  base URL from `window.location` and uses relative request paths, which work
+  identically whether or not the proxy keeps the prefix — and standalone.
+
 ## 2.1.1 — 2026-10-12
 
 - **Fix "Couldn't load settings (HTTP 404)" and the empty graph when running

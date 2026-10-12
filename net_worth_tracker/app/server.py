@@ -535,7 +535,7 @@ def fetch_monzo():
 
 
 def explain_monzo(e: ApiError):
-    relogin = {"label": "Connect Monzo", "href": "/settings"} if monzo_oauth() else None
+    relogin = {"label": "Connect Monzo", "href": "settings"} if monzo_oauth() else None
     if e.status == 401:
         if monzo_oauth():
             out = {"text": "Monzo session expired. Connect again from Settings to keep syncing."}
@@ -728,12 +728,12 @@ def summary():
     if not (DEMO or load_t212_accounts() or monzo.configured):
         notices.append({"level": "info",
                         "text": "No accounts connected yet. Add your API keys in Settings — no restart needed.",
-                        "action": {"label": "Open Settings", "href": "/settings"}})
+                        "action": {"label": "Open Settings", "href": "settings"}})
     for err in STATE["errors"].values():
         notices.append({"level": "error", **err})
     if monzo_oauth() and not monzo.connected and not DEMO:
         notices.append({"level": "info", "text": "Monzo isn't connected yet.",
-                        "action": {"label": "Connect Monzo", "href": "/settings"}})
+                        "action": {"label": "Connect Monzo", "href": "settings"}})
     return {
         "sources": sources,
         "total": round(total, 2),
@@ -791,11 +791,10 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _html(self, name: str):
+        # Pages derive their base URL from window.location (see index/settings
+        # HTML), so they work identically through Home Assistant ingress (where
+        # the browser URL carries /api/hassio_ingress/<token>/) and standalone.
         html = (ROOT / "static" / name).read_bytes()
-        if self.base:
-            # Pages prepend BASE to every fetch and link, so they work under ingress.
-            tag = b"<script>window.BASE=" + json.dumps(self.base + "/").encode() + b";</script>"
-            html = html.replace(b"</head>", tag + b"</head>", 1)
         return self._send(200, html, "text/html; charset=utf-8", {"Content-Security-Policy": CSP})
 
     def _authed(self) -> bool:

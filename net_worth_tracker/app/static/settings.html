@@ -107,7 +107,7 @@
 (() => {
   'use strict';
   const $ = (s) => document.querySelector(s);
-  const BASE = window.BASE || '';  // ingress prefix when served through Home Assistant
+  const BASE = new URL('.', window.location).href;  // '/api/hassio_ingress/<tok>/' under ingress, '/' standalone
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let S = null; // last state from the server
@@ -274,7 +274,7 @@
   }
 
   async function api(url, opts) {
-    const r = await fetch(BASE + url, opts);
+    const r = await fetch(BASE + url.replace(/^\//, ''), opts);
     const body = await r.json().catch(() => null);
     if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), {body});
     return body;
