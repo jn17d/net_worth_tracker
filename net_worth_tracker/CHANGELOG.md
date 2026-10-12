@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.3 — 2026-10-12
+
+- **Fix "Settings are only reachable from this machine" (HTTP 403) through the
+  Home Assistant panel.** Because HA strips the ingress path prefix (see
+  2.1.2), the Settings gate misjudged panel requests as remote and blocked
+  them. Ingress is now detected by the proxy's `X-Hass-User-Id` /
+  `X-Hass-Is-Admin` headers, which HA always sends. Basic-auth users going
+  through ingress are also exempt from re-entering credentials.
+
 ## 2.1.2 — 2026-10-12
 
 - **Fix 404s under Home Assistant ingress for good.** Verified live with a

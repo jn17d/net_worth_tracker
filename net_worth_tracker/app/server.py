@@ -797,8 +797,18 @@ class Handler(BaseHTTPRequestHandler):
         html = (ROOT / "static" / name).read_bytes()
         return self._send(200, html, "text/html; charset=utf-8", {"Content-Security-Policy": CSP})
 
+    def _via_ingress(self) -> bool:
+        """True when the request came through Home Assistant ingress.
+
+        Recent HA builds strip the ingress path prefix before proxying, so the
+        URL can't be trusted — but the proxy always identifies the signed-in HA
+        user with these headers.
+        """
+        return bool(self.base or self.headers.get("X-Hass-User-Id")
+                    or self.headers.get("X-Hass-Is-Admin"))
+
     def _authed(self) -> bool:
-        if self.base:
+        if self._via_ingress():
             return True  # through ingress: the Home Assistant user is already signed in
         expected_user = auth_user()
         if not expected_user:
@@ -833,7 +843,8 @@ class Handler(BaseHTTPRequestHandler):
         """Settings carry the keys, so they need Basic auth when configured and
         stay localhost-only when it isn't — except through Home Assistant
         ingress, which already sits behind the HA user's own sign-in."""
-        if not auth_user() and not self.base and self.client_address[0] not in ("127.0.0.1", "::1"):
+        if (not auth_user() and not self._via_ingress()
+                and self.client_address[0] not in ("127.0.0.1", "::1")):
             self._send(403, {"error": "Settings are only reachable from this machine. "
                                       "Open the Home Assistant panel, or set BASIC_AUTH_USER in "
                                       "Settings → Sign-in to use them remotely."})
