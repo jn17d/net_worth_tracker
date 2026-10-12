@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0 — 2026-10-12
+
+Overhauled Monzo connection — the "paste-the-code" flow:
+
+- The redirect URI is now the fixed constant `https://localhost/net-worth-tracker`,
+  registered once on your Monzo developer client. The page never needs to load:
+  after authorising, copy the URL from the address bar (it contains `?code=…`)
+  into the Settings page and press Connect — the app exchanges the code
+  server-side.
+- Removes all dynamic redirect-URI machinery: no more Supervisor API calls,
+  ingress-URL detection, `hassio_api` role requirements or HTTPS/public-URL
+  constraints. Redirect mismatch errors are now impossible after step 2.
+- Settings page: new Authorise / paste-URL / Connect box; redirect-URI field
+  removed. Playground-token paste mode kept as a fallback.
+- Tokens still refresh automatically; reconnection is only needed if you
+  revoke the client.
+- `monzo_redirect_uri` option removed from add-on configuration.
+
 ## 1.0.6 — 2026-10-12
 
 - Derive the Monzo redirect URI from the incoming ingress request (path prefix

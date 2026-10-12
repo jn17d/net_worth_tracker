@@ -30,7 +30,7 @@ except Exception:
     sys.exit(0)
 
 SCALARS = ("demo", "t212_env", "poll_minutes",
-           "monzo_client_id", "monzo_client_secret", "monzo_redirect_uri")
+           "monzo_client_id", "monzo_client_secret")
 
 def emit(key, value):
     print(f"export {key}={shlex.quote(str(value))}")

@@ -187,14 +187,24 @@
 
       <section class="panel">
         <header><h2>Monzo</h2><span class="tag">${oauthReady ? (S.monzo.connected ? 'connected' : 'not signed in') : 'not set up'}</span></header>
-        <p class="sub">OAuth (recommended): add a client ID + secret from developer.monzo.com, save, then use “Sign in to Monzo”. A pasted playground token also works but expires after a few hours.</p>
-        <p class="sub">Your Monzo client's registered redirect URL must be exactly:<br><code>${esc(S.redirect)}</code></p>
+        <p class="sub">One-time setup on <a href="https://developers.monzo.com" target="_blank" rel="noopener">developers.monzo.com</a>: create a <b>Confidential</b> OAuth client and set its <b>Redirect URL</b> to exactly:<br><code>${esc(S.monzoRedirect)}</code></p>
         ${textField('MONZO_CLIENT_ID', 'Client ID', f.MONZO_CLIENT_ID, p.MONZO_CLIENT_ID, 'oauth client id')}
         ${secretField('MONZO_CLIENT_SECRET', 'Client secret', f.MONZO_CLIENT_SECRET)}
+        <div id="monzoConnect">
+          ${oauthReady ? `
+          <p class="sub"><b>Connect:</b> 1) <a href="${BASE}monzo/login" target="_blank" rel="noopener">Authorise on Monzo ↗</a> and approve access. 2) The page that opens afterwards won't load — that's fine. Copy the <b>whole URL</b> from the address bar (it ends in <code>?code=…</code>). 3) Paste it below and press Connect.</p>
+          <div class="field">
+            <label>Paste the URL you landed on</label>
+            <div class="row">
+              <input type="text" id="monzoUrl" placeholder="https://localhost/net-worth-tracker?code=…" autocomplete="off">
+              <button type="button" class="mini" id="monzoConnectBtn">Connect</button>
+            </div>
+            <p class="hint">Codes are single-use and expire quickly — if Connect fails, authorise again for a fresh one.</p>
+          </div>` : '<p class="sub">Save a client ID + secret first, then the connect steps appear here.</p>'}
+          ${S.monzo.connected ? '<p class="hint">✓ Connected — tokens refresh automatically. To reconnect, authorise again and paste a fresh URL.</p>' : ''}
+        </div>
         ${secretField('MONZO_ACCESS_TOKEN', 'Access token (token mode)', f.MONZO_ACCESS_TOKEN)}
         ${textField('MONZO_ACCOUNT_IDS', 'Account IDs (optional)', f.MONZO_ACCOUNT_IDS, p.MONZO_ACCOUNT_IDS, 'comma-separated — blank means all accounts')}
-        ${textField('MONZO_REDIRECT_URI', 'Redirect URI (optional)', f.MONZO_REDIRECT_URI, p.MONZO_REDIRECT_URI, S.redirect, 'Only change this if you registered a different redirect URL on your Monzo client — it must match character for character.')}
-        ${oauthReady && !S.monzo.connected ? `<p class="hint"><a href="${BASE}monzo/login">Sign in to Monzo →</a></p>` : ''}
       </section>
 
       <section class="panel">
@@ -225,6 +235,24 @@
         const on = b.classList.toggle('on');
         b.textContent = on ? 'Will remove' : 'Remove';
       });
+    });
+    const connectBtn = $('#monzoConnectBtn');
+    if (connectBtn) connectBtn.addEventListener('click', async () => {
+      const urlEl = $('#monzoUrl');
+      if (!urlEl.value.trim()) { status('Paste the URL you landed on first.', 'err'); return; }
+      connectBtn.disabled = true; status('Connecting to Monzo…');
+      try {
+        S = await api('/monzo/connect', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-Settings-Token': S.csrf},
+          body: JSON.stringify({url: urlEl.value}),
+        });
+        render();
+        status('Monzo connected ✓', 'ok');
+      } catch (e) {
+        status(e.body && e.body.error ? e.body.error : 'Connect failed — is the server running?', 'err');
+        connectBtn.disabled = false;
+      }
     });
     $('#save').disabled = false;
     status('');

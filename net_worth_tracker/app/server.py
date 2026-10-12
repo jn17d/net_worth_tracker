@@ -74,7 +74,7 @@ CSRF_TOKEN = secrets.token_urlsafe(32)
 
 SETTING_KEYS = (
     "MONZO_CLIENT_ID", "MONZO_CLIENT_SECRET", "MONZO_ACCESS_TOKEN", "MONZO_ACCOUNT_IDS",
-    "MONZO_REDIRECT_URI", "BASIC_AUTH_USER", "BASIC_AUTH_PASS", "T212_ENV", "POLL_MINUTES",
+    "BASIC_AUTH_USER", "BASIC_AUTH_PASS", "T212_ENV", "POLL_MINUTES",
 )
 T212_SLOTS = 4  # the Settings page exposes T212_1_* .. T212_4_*
 
@@ -152,32 +152,22 @@ def monzo_oauth() -> bool:
                 and os.environ.get("MONZO_CLIENT_SECRET", "").strip())
 
 
-# Filled at start-up when running as a Home Assistant add-on: the add-on's
-# public ingress URL, e.g. https://homeassistant.local:8123/api/hassio_ingress/xyz
-SUPERVISOR_INFO: dict = {}
-
-# Learned live from incoming requests: when someone opens the add-on through
-# the Home Assistant ingress panel, the request path contains the ingress
-# prefix and the forwarded headers reveal the public HA address. This is the
-# reliable fallback when the Supervisor token isn't available.
-INGRESS_SEEN: dict = {"origin": "", "base": ""}
+# Fixed, one-time redirect URI registered on the Monzo developer portal. The
+# page never needs to load — after authorising, the browser lands on this URL
+# with ?code=… in the address bar, the user copies that URL back into the
+# Settings page, and the server exchanges the code. This removes any need for
+# the app to know its own public address (ingress token, HTTPS, ports, …).
+MONZO_REDIRECT = "https://localhost/net-worth-tracker"
 
 
 def monzo_redirect() -> str:
-    """Where Monzo sends the browser back after sign-in.
+    """Redirect URI used for both the consent URL and the token exchange.
 
-    An explicit MONZO_REDIRECT_URI always wins. Under Home Assistant the
-    add-on's own ingress URL is the default (no extra port to expose);
-    standalone runs fall back to localhost.
+    An explicit MONZO_REDIRECT_URI (rare, e.g. an off-label setup registered on
+    the Monzo client) always wins; otherwise the fixed constant is used.
     """
     uri = os.environ.get("MONZO_REDIRECT_URI", "").strip()
-    if uri:
-        return uri
-    if SUPERVISOR_INFO.get("ingress_url"):
-        return SUPERVISOR_INFO["ingress_url"] + "/monzo/callback"
-    if INGRESS_SEEN["origin"] and INGRESS_SEEN["base"]:
-        return INGRESS_SEEN["origin"] + INGRESS_SEEN["base"] + "/monzo/callback"
-    return f"http://localhost:{PORT}/monzo/callback"
+    return uri or MONZO_REDIRECT
 
 
 def monzo_account_ids() -> list:
@@ -235,12 +225,11 @@ def credentials_state() -> dict:
         "plain": {
             "MONZO_CLIENT_ID": os.environ.get("MONZO_CLIENT_ID", "").strip(),
             "MONZO_ACCOUNT_IDS": os.environ.get("MONZO_ACCOUNT_IDS", "").strip(),
-            "MONZO_REDIRECT_URI": os.environ.get("MONZO_REDIRECT_URI", "").strip(),
             "BASIC_AUTH_USER": auth_user(),
             "T212_ENV": t212_env(),
             "POLL_MINUTES": str(poll_minutes()),
         },
-        "redirect": monzo_redirect(),
+        "monzoRedirect": monzo_redirect(),
         "monzo": {"oauth": monzo_oauth(), "connected": monzo.connected},
         "authEnabled": bool(auth_user()),
     }
@@ -308,9 +297,6 @@ def apply_credentials(changes) -> None:
         ids = [i for i in clean["MONZO_ACCOUNT_IDS"].split(",") if i.strip()]
         if len(ids) > 20 or any(len(i.strip()) > 64 for i in ids):
             errors.append("Monzo account IDs: up to 20 comma-separated account ids.")
-    if "MONZO_REDIRECT_URI" in clean and clean["MONZO_REDIRECT_URI"] is not None:
-        if not clean["MONZO_REDIRECT_URI"].startswith(("http://", "https://")):
-            errors.append("Monzo redirect URI must be a full URL starting with http:// or https://.")
     if errors:
         raise SettingsError(" ".join(errors))
 
@@ -549,10 +535,10 @@ def fetch_monzo():
 
 
 def explain_monzo(e: ApiError):
-    relogin = {"label": "Sign in to Monzo", "href": "/monzo/login"} if monzo_oauth() else None
+    relogin = {"label": "Connect Monzo", "href": "/settings"} if monzo_oauth() else None
     if e.status == 401:
         if monzo_oauth():
-            out = {"text": "Monzo session expired. Sign in again to keep syncing."}
+            out = {"text": "Monzo session expired. Connect again from Settings to keep syncing."}
         else:
             out = {"text": "Monzo access token expired. Playground tokens only last a few hours. "
                            "Paste a new one in Settings, or add an OAuth client there so it refreshes itself."}
@@ -747,7 +733,7 @@ def summary():
         notices.append({"level": "error", **err})
     if monzo_oauth() and not monzo.connected and not DEMO:
         notices.append({"level": "info", "text": "Monzo isn't connected yet.",
-                        "action": {"label": "Connect Monzo", "href": "/monzo/login"}})
+                        "action": {"label": "Connect Monzo", "href": "/settings"}})
     return {
         "sources": sources,
         "total": round(total, 2),
@@ -780,15 +766,6 @@ class Handler(BaseHTTPRequestHandler):
         if m and len(url.path) > m.end():
             self.base = m.group(0)
             url = url._replace(path=url.path[m.end():] or "/")
-            # Remember where the public world reaches us, so the Monzo
-            # redirect URI can be derived without any Supervisor API access.
-            INGRESS_SEEN["base"] = self.base
-            proto = (self.headers.get("X-Forwarded-Proto") or "https").split(",")[0].strip()
-            host = (self.headers.get("X-Forwarded-Host")
-                    or self.headers.get("X-Ingress-Host")
-                    or self.headers.get("Host") or "").split(",")[0].strip()
-            if host:
-                INGRESS_SEEN["origin"] = f"{proto}://{host}"
         else:
             self.base = ""
         return url
@@ -839,6 +816,16 @@ class Handler(BaseHTTPRequestHandler):
         self._send(401, {"error": "Sign in required"}, headers={"WWW-Authenticate": 'Basic realm="Net worth"'})
         return False
 
+    @staticmethod
+    def _extract_monzo_code(pasted: str) -> str:
+        """Pull the ?code=… out of whatever the user pasted — a full URL
+        (https://localhost/net-worth-tracker?code=abc&state=…) or a bare code."""
+        pasted = pasted.strip()
+        if "code=" in pasted:
+            parsed = urllib.parse.urlsplit(pasted if "://" in pasted else "https://x/" + pasted.lstrip("/?"))
+            return urllib.parse.parse_qs(parsed.query).get("code", [""])[0].strip()
+        return pasted if 8 <= len(pasted) <= 512 and not pasted.startswith(("http", "{")) else ""
+
     def _settings_gate(self) -> bool:
         """Settings carry the keys, so they need Basic auth when configured and
         stay localhost-only when it isn't — except through Home Assistant
@@ -882,22 +869,6 @@ class Handler(BaseHTTPRequestHandler):
                 "response_type": "code", "state": state,
             })
             return self._send(302, b"", "text/plain", {"Location": "https://auth.monzo.com/?" + params})
-        if url.path == "/monzo/callback":
-            code, state = q.get("code", [""])[0], q.get("state", [""])[0]
-            error = q.get("error", [""])[0]
-            if error:
-                detail = q.get("error_description", [""])[0] or error
-                return self._send(502, f"Monzo sent back an error: {detail}. Start again from Settings.", "text/plain; charset=utf-8")
-            if not code or state not in PENDING_STATES:
-                return self._send(400, "That sign-in link is invalid or has expired. Start again from Settings.", "text/plain; charset=utf-8")
-            PENDING_STATES.discard(state)
-            try:
-                monzo.exchange(code)
-            except ApiError as e:
-                return self._send(502, f"Monzo refused the sign-in ({e.status}): {humanise_monzo_error(e.message)}", "text/plain; charset=utf-8")
-            except Exception as e:  # malformed response etc.
-                return self._send(502, f"Sign-in failed unexpectedly ({type(e).__name__}). Try again — if it keeps happening, check the server log.", "text/plain; charset=utf-8")
-            return self._send(302, b"", "text/plain", {"Location": self.base + "/"})
         self._send(404, {"error": "Not found"})
 
     def do_POST(self):
@@ -923,40 +894,41 @@ class Handler(BaseHTTPRequestHandler):
             if not DEMO:  # real keys: fetch fresh data with them right away
                 threading.Thread(target=poll_once, daemon=True).start()
             return self._send(200, credentials_state())
+        if path == "/monzo/connect":
+            if not self._settings_gate():
+                return
+            try:
+                length = min(int(self.headers.get("Content-Length") or 0), 64 * 1024)
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            except ValueError:
+                return self._send(400, {"error": "That didn't look like valid JSON."})
+            token = self.headers.get("X-Settings-Token", "")
+            if not secrets.compare_digest(token.encode("utf-8"), CSRF_TOKEN.encode("utf-8")):
+                return self._send(403, {"error": "This page has expired. Reload Settings and try again."})
+            pasted = str(payload.get("url") or payload.get("code") or "").strip()
+            code = self._extract_monzo_code(pasted)
+            if not code:
+                return self._send(400, {"error": "Couldn't find an authorization code in that. "
+                                                "Paste the full URL from the browser's address bar "
+                                                "after approving Monzo — it contains ?code=…"})
+            if not monzo_oauth():
+                return self._send(400, {"error": "Add your Monzo client ID and secret (and Save) first."})
+            try:
+                monzo.exchange(code)
+            except ApiError as e:
+                return self._send(400, {"error": f"Monzo refused the code ({e.status}): "
+                                                f"{humanise_monzo_error(e.message)}"})
+            except Exception as e:
+                return self._send(400, {"error": f"Sign-in failed unexpectedly ({type(e).__name__}). "
+                                                "Try authorising again — codes only work once."})
+            if not DEMO:
+                threading.Thread(target=poll_once, daemon=True).start()
+            return self._send(200, credentials_state())
         if path == "/api/refresh":
             if time.time() - STATE["last_poll_start"] > 8:  # Trading 212 allows 1 request / 5s
                 poll_once()
             return self._send(200, summary())
         self._send(404, {"error": "Not found"})
-
-
-def fetch_supervisor_info() -> None:
-    """When running as a Home Assistant add-on, ask the Supervisor for this
-    add-on's public ingress URL so the Monzo redirect URI can default to it."""
-    token = os.environ.get("SUPERVISOR_TOKEN", "")
-    if not token:
-        print("Supervisor token missing — can't auto-detect the Monzo redirect "
-              "URI. It will fall back to localhost; set MONZO_REDIRECT_URI in "
-              "the add-on options to override. (A full rebuild of the add-on "
-              "after a hassio_role change usually restores the token.)")
-        return
-    last_err = None
-    for attempt in range(3):
-        try:
-            d = http_json("http://supervisor/addons/self/info",
-                          {"Authorization": f"Bearer {token}"}, timeout=10)
-            info = d.get("data") if isinstance(d, dict) and isinstance(d.get("data"), dict) else d
-            url = str((info or {}).get("ingress_url") or "").strip()
-            if url.startswith(("http://", "https://")):
-                SUPERVISOR_INFO["ingress_url"] = url.rstrip("/")
-                return
-            last_err = "no ingress_url in the response"
-        except Exception as e:
-            last_err = e
-        time.sleep(2)
-    print("Couldn't read the ingress URL from the Supervisor:", last_err,
-          "— the Monzo redirect URI will fall back to localhost; set "
-          "MONZO_REDIRECT_URI in the add-on options to override.")
 
 
 def main():
@@ -967,14 +939,10 @@ def main():
         pass
     if DEMO:
         seed_demo()
-    fetch_supervisor_info()
     threading.Thread(target=poll_loop, daemon=True).start()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"Net worth dashboard on http://{HOST}:{PORT}"
-          + ("  (Home Assistant ingress)" if SUPERVISOR_INFO.get("ingress_url") else "")
           + ("  (demo data)" if DEMO else ""))
-    if SUPERVISOR_INFO.get("ingress_url"):
-        print(f"Monzo redirect URI for your Monzo client: {monzo_redirect()}")
     if (HOST not in ("127.0.0.1", "localhost", "::1") and not auth_user()
             and not os.environ.get("SUPERVISOR_TOKEN")):
         print("Warning: listening beyond localhost with no BASIC_AUTH_USER set. "

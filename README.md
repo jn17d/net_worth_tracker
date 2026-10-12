@@ -39,19 +39,22 @@ inside, so the image is small and installs nothing extra.
 
 ## Connecting Monzo
 
+Monzo uses a manual one-time code exchange — no public URL, HTTPS or ports needed.
+
 1. At [developers.monzo.com](https://developers.monzo.com) → **Clients** →
    **New client**, choose **Confidential**.
-2. For the redirect URL, open the add-on → **Settings** and copy the URL shown
-   under the Monzo section — it is derived from your Home Assistant ingress URL
-   and must match **character for character**.
-   > Tip: if you use Home Assistant remotely, set your external URL in
-   > **Settings → System → Network** first, then copy the redirect URL.
-3. Paste the client ID + secret into the add-on's Options or its Settings
-   page, save, then click **Sign in to Monzo**.
-4. Approve the request — note that after signing in with email you must
-   **also approve it in the Monzo app** on your phone.
+2. Set the client's **Redirect URL** to exactly:
+   `https://localhost/net-worth-tracker`
+   (Yes, it's a made-up address — it never needs to load.)
+3. Paste the client ID + secret into the add-on's Settings page and **Save**.
+4. Click **Authorise on Monzo**, approve access (you may also need to approve
+   it in the Monzo app on your phone). The page you land on **won't load —
+   that's expected**.
+5. Copy the **whole URL** from the browser's address bar (it ends in
+   `?code=…`) and paste it into the *Paste the URL you landed on* box →
+   **Connect**.
 
-Tokens are refreshed automatically; you only sign in once.
+Tokens are stored locally and refreshed automatically; you only do this once.
 
 ## Configuration
 
@@ -61,8 +64,7 @@ Tokens are refreshed automatically; you only sign in once.
 | `t212_env` | `live` or `demo` (practice accounts) |
 | `poll_minutes` | How often to poll (1–1440, default 15) |
 | `t212_accounts` | List of `{label, key, secret}` — one per Trading 212 account |
-| `monzo_client_id` / `monzo_client_secret` | OAuth client from developers.monzo.com |
-| `monzo_redirect_uri` | Leave blank to use the ingress URL automatically |
+| `monzo_client_id` / `monzo_client_secret` | OAuth client from developers.monzo.com (register redirect URL `https://localhost/net-worth-tracker`) |
 
 Everything can also be set on the add-on's own **Settings** page. Precedence:
 **add-on Options → Settings page → defaults**. Options-set keys show up as

@@ -22,9 +22,3 @@ en:
     monzo_client_secret:
       name: Monzo client secret
       description: Optional — you can also add it on the add-on's Settings page.
-    monzo_redirect_uri:
-      name: Monzo redirect URI
-      description: >-
-        Leave blank to use the add-on's ingress URL automatically (shown on the
-        Settings page). Only set this if you registered a different redirect
-        URL on your Monzo client.
